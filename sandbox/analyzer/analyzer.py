@@ -101,7 +101,7 @@ def main() -> None:
     files = [
         path
         for path in INPUT_DIR.iterdir()
-        if path.is_file()
+        if path.is_file() and path.name != ".gitkeep"
     ]
 
     if not files:
