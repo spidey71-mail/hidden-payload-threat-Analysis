@@ -364,3 +364,73 @@ The sandbox follows a simple principle:
 > **Untrusted content should be analyzed inside an isolated environment rather than trusted by default.**
 
 The project will progressively strengthen this boundary as dynamic analysis capabilities are introduced.
+
+//## Static Detector v0.2
+
+The sandbox was extended with a static artifact detection layer. The detector analyzes files without executing them and extracts potentially relevant indicators for downstream payload classification.
+
+### Static Analysis Capabilities
+
+The current analyzer extracts:
+
+- SHA-256 file hashes
+- File size
+- Shannon entropy
+- Printable strings
+- Known file signatures
+- URLs
+- Command/interpreter indicators
+- Base64-encoded candidates
+- Hexadecimal candidates
+
+The detector currently recognizes common signatures including:
+
+- PE / Windows executable
+- ELF executable
+- PDF
+- ZIP/archive
+- PNG
+- JPEG
+- GIF
+
+Command indicators currently include:
+
+- PowerShell
+- CMD
+- Bash
+- `/bin/sh`
+
+### Controlled Validation Corpus
+
+A controlled benign test corpus was created to verify each detector independently.
+
+| Artifact | Purpose | Expected Detection | Result |
+|---|---|---|---|
+| `sample.txt` | Benign text | No indicators | PASS |
+| `fake_pe.bin` | PE magic-byte test | PE signature | PASS |
+| `encoded.txt` | Encoding test | Base64 candidate | PASS |
+| `url_test.txt` | Network indicator test | URL | PASS |
+| `command_test.txt` | Command indicator test | PowerShell | PASS |
+
+### Validation Output
+
+The analyzer successfully produced structured JSON containing the extracted static indicators.
+
+Example:
+
+```json
+{
+  "file_name": "command_test.txt",
+  "analysis_mode": "static",
+  "executed": false,
+  "network_access": false,
+  "static_indicators": {
+    "file_signatures": [],
+    "urls": [],
+    "command_indicators": [
+      "powershell"
+    ],
+    "base64_candidates": [],
+    "hex_candidates": []
+  }
+}

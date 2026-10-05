@@ -3,6 +3,9 @@ import json
 import math
 import string
 from pathlib import Path
+import base64
+import binascii
+import re
 
 
 INPUT_DIR = Path("/sandbox/input")
@@ -75,16 +78,106 @@ def extract_strings(
 
     return results[:500]
 
+FILE_SIGNATURES = {
+    b"MZ": "PE/Windows executable",
+    b"\x7fELF": "ELF executable",
+    b"%PDF": "PDF document",
+    b"PK\x03\x04": "ZIP/archive",
+    b"\x89PNG\r\n\x1a\n": "PNG image",
+    b"\xff\xd8\xff": "JPEG image",
+    b"GIF8": "GIF image",
+}
+
+
+COMMAND_PATTERNS = {
+    "powershell": re.compile(r"\bpowershell(?:\.exe)?\b", re.IGNORECASE),
+    "cmd": re.compile(r"\bcmd(?:\.exe)?\b", re.IGNORECASE),
+    "bash": re.compile(r"\bbash\b", re.IGNORECASE),
+    "sh": re.compile(r"(?:^|\s)/bin/sh\b", re.IGNORECASE),
+}
+
+
+URL_PATTERN = re.compile(
+    r"https?://[^\s\"'<>]+",
+    re.IGNORECASE,
+)
+
+
+BASE64_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{16,}={0,2}(?![A-Za-z0-9+/])"
+)
+
+
+HEX_PATTERN = re.compile(
+    r"(?<![A-Fa-f0-9])(?:[A-Fa-f0-9]{2}){8,}(?![A-Fa-f0-9])"
+)
+
+
+def detect_file_signature(data: bytes) -> list[str]:
+    findings = []
+
+    for signature, description in FILE_SIGNATURES.items():
+        if data.startswith(signature):
+            findings.append(description)
+
+    return findings
+
+
+def detect_urls(text: str) -> list[str]:
+    return URL_PATTERN.findall(text)[:50]
+
+
+def detect_commands(text: str) -> list[str]:
+    findings = []
+
+    for name, pattern in COMMAND_PATTERNS.items():
+        if pattern.search(text):
+            findings.append(name)
+
+    return findings
+
+
+def detect_base64(text: str) -> list[str]:
+    candidates = BASE64_PATTERN.findall(text)
+
+    valid = []
+
+    for candidate in candidates[:50]:
+        try:
+            base64.b64decode(candidate, validate=True)
+            valid.append(candidate)
+        except (ValueError, binascii.Error):
+            continue
+
+    return valid
+
+
+def detect_hex(text: str) -> list[str]:
+    return HEX_PATTERN.findall(text)[:50]
+
 
 def analyze_file(path: Path) -> dict:
     data = path.read_bytes()
+
+    strings = extract_strings(data)
+
+    combined_text = "\n".join(strings)
 
     return {
         "file_name": path.name,
         "file_size": len(data),
         "sha256": sha256_file(path),
         "entropy": calculate_entropy(data),
-        "strings": extract_strings(data),
+        "strings": strings,
+
+        "static_indicators": {
+            "file_signatures": detect_file_signature(data),
+            "urls": detect_urls(combined_text),
+            "command_indicators": detect_commands(combined_text),
+            "base64_candidates": detect_base64(combined_text),
+            "hex_candidates": detect_hex(combined_text),
+        },
+
         "analysis_mode": "static",
         "executed": False,
         "network_access": False,
