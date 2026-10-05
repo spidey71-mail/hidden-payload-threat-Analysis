@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy analyzer
 COPY analyzer/analyzer.py /sandbox/analyzer.py
+COPY analyzer/extractors.py /sandbox/extractors.py
 
 # Create isolated working directories
 RUN mkdir -p /sandbox/input /sandbox/output \
