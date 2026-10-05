@@ -1,0 +1,27 @@
+services:
+  analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: payloadAnalysis-sandbox
+
+    read_only: true
+
+    network_mode: "none"
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    pids_limit: 128
+
+    mem_limit: 1g
+
+    cpus: 1.0
+
+    volumes:
+      - ./input:/sandbox/input:ro
+      - ./output:/sandbox/output:rw

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Sandbox generated output
+sandbox/output/*
+!sandbox/output/.gitkeep
+
+# Potential payload samples
+sandbox/input/*
+!sandbox/input/.gitkeep
+
+# OS / IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Experiment artifacts
+experiments/runs/
+models/checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
