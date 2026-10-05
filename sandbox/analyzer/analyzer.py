@@ -6,7 +6,7 @@ from pathlib import Path
 import base64
 import binascii
 import re
-
+from extractors import extract_static_indicators
 
 INPUT_DIR = Path("/sandbox/input")
 OUTPUT_DIR = Path("/sandbox/output")
@@ -159,25 +159,13 @@ def detect_hex(text: str) -> list[str]:
 def analyze_file(path: Path) -> dict:
     data = path.read_bytes()
 
-    strings = extract_strings(data)
-
-    combined_text = "\n".join(strings)
-
     return {
         "file_name": path.name,
         "file_size": len(data),
         "sha256": sha256_file(path),
         "entropy": calculate_entropy(data),
-        "strings": strings,
-
-        "static_indicators": {
-            "file_signatures": detect_file_signature(data),
-            "urls": detect_urls(combined_text),
-            "command_indicators": detect_commands(combined_text),
-            "base64_candidates": detect_base64(combined_text),
-            "hex_candidates": detect_hex(combined_text),
-        },
-
+        "strings": extract_strings(data),
+        "static_indicators": extract_static_indicators(data),
         "analysis_mode": "static",
         "executed": False,
         "network_access": False,
